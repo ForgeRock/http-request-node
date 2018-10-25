@@ -48,7 +48,7 @@ public class HTTPRequestNodePlugin extends AbstractNodeAmPlugin {
 
     @Override
     public String getPluginVersion() {
-        return "1.0.0";
+        return "2.0.2";
     }
 
     @Override

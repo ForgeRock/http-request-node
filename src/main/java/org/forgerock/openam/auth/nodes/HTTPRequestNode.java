@@ -26,30 +26,19 @@ import com.sun.identity.shared.debug.Debug;
 import org.forgerock.guava.common.collect.ImmutableList;
 import org.forgerock.json.JsonValue;
 import org.forgerock.openam.annotations.sm.Attribute;
-import org.forgerock.openam.auth.node.api.Action;
-import org.forgerock.openam.auth.node.api.Node;
-import org.forgerock.openam.auth.node.api.NodeProcessException;
-import org.forgerock.openam.auth.node.api.TreeContext;
+import org.forgerock.openam.auth.node.api.*;
 import org.forgerock.util.i18n.PreferredLocales;
 
 import javax.inject.Inject;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-
-import org.forgerock.openam.utils.JsonValueBuilder;
-
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
 
 
 @Node.Metadata(outcomeProvider = HTTPRequestNode.OutcomeProvider.class,
@@ -70,7 +59,7 @@ public class HTTPRequestNode implements Node {
 
         @Attribute(order = 200)
         default String Body() {
-            return "Pay to send to URL";
+            return "{\"message\": \"{{User}} has logged in\"}";
         }
 
         @Attribute(order = 300)
@@ -84,25 +73,24 @@ public class HTTPRequestNode implements Node {
     /**
      * Create the node.
      * @param config The service config.
-     * @throws NodeProcessException If the configuration was not valid.
      */
     @Inject
-    public HTTPRequestNode(@Assisted Config config) throws NodeProcessException {
+    public HTTPRequestNode(@Assisted Config config) {
         this.config = config;
     }
 
     @Override
-    public Action process(TreeContext context) throws NodeProcessException {
+    public Action process(TreeContext context) {
 
         debug.message("[" + DEBUG_FILE + "]: Started");
 
         //Call helper function that sends HTTP request
-        return sendRequest();
+        return sendRequest(context);
 
 
     }
 
-    private Action sendRequest() {
+    private Action sendRequest(TreeContext context) {
 
         try {
 
@@ -121,8 +109,13 @@ public class HTTPRequestNode implements Node {
             }
 
             //Set body
-            OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), "UTF-8");
-            writer.write(config.Body());
+            //Read the contents of the config body.  {{User}} is the only variable available
+            String submittedBody=config.Body();
+            String userName = context.sharedState.get(SharedStateConstants.USERNAME).asString();
+            if (submittedBody.contains("{{User}}")) submittedBody = submittedBody.replace("{{User}}", userName);
+
+            OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), StandardCharsets.UTF_8);
+            writer.write(submittedBody);
             writer.close();
 
             //Check response is 200
