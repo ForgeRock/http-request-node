@@ -13,7 +13,7 @@
  *
  * Copyright 2018 ForgeRock AS.
 -->
-# HTTP Request Authentication Node
+# HTTP Notify Request Node
 
 A simple authentication node for ForgeRock's [Identity Platform][forgerock_platform] 5.5 and above. This node sends an HTTP POST payload with configurable body/headers.
 ## Installation
